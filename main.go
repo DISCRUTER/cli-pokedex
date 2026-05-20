@@ -14,8 +14,25 @@ type cliCommand struct {
 
 var commands map[string]cliCommand
 
+type config struct {
+	next     string
+	previous string
+}
+
+var mapConfig config
+
 func init() {
 	commands = map[string]cliCommand{
+		"map": {
+			name:        "map",
+			description: "List 20 next location areas | Go to next 20",
+			callback:    mapCommand,
+		},
+		"mapb": {
+			name:        "mapb",
+			description: "List 20 previous location areas | Go to previous 20",
+			callback:    mapbCommand,
+		},
 		"help": {
 			name:        "help",
 			description: "Display a help message",
@@ -26,6 +43,11 @@ func init() {
 			description: "Exit the Pokedex",
 			callback:    exitCommand,
 		},
+	}
+
+	mapConfig = config{
+		next:     "https://pokeapi.co/api/v2/location-area/?offset=0&limit=20",
+		previous: "",
 	}
 }
 
@@ -39,10 +61,12 @@ func main() {
 		input := scanner.Text()
 		cleanedInput := cleanInput(input)
 		val, ok := commands[cleanedInput[0]]
-		if ok {
-			val.callback()
-		} else {
+		if !ok {
 			fmt.Printf("You command is %s\n", cleanedInput[0])
+			continue
+		}
+		if err := val.callback(); err != nil {
+			fmt.Errorf("%v", err)
 		}
 	}
 }
