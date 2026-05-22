@@ -29,8 +29,12 @@ func mapCommand() error {
 	}
 
 	// Fetch map data
-	_, err := getMapData(mapConfig.next)
+	data, err := getMapData(mapConfig.next)
 	if err != nil {
+		return err
+	}
+	// Unmarshal map data
+	if err = printMapData(data); err != nil {
 		return err
 	}
 
@@ -45,8 +49,12 @@ func mapbCommand() error {
 	}
 
 	// Fetch map data
-	_, err := getMapData(mapConfig.previous)
+	data, err := getMapData(mapConfig.previous)
 	if err != nil {
+		return err
+	}
+	// Unmarshal map data
+	if err = printMapData(data); err != nil {
 		return err
 	}
 
@@ -63,30 +71,40 @@ func helpCommand() error {
 
 func exitCommand() error {
 	fmt.Println("Closing the Pokedex... Goodbye!")
+	cache.Stop()
 	os.Exit(0)
 	return nil
 }
 
-
 // Helper functions
 
-func getMapData(URL string) (pokedex, error) {
+func getMapData(URL string) ([]byte, error) {
+	// Checking cache
+	data, exist := cache.Get(URL)
+	if exist {
+		return  data, nil
+	}
 	// Sending Http request
 	res, err := http.Get(URL)
 	if err != nil {
-		return pokedex{}, err
+		return nil, err
 	}
 	defer res.Body.Close()
-
 	// Converting data into bytes
-	data, err := io.ReadAll(res.Body)
+	data, err = io.ReadAll(res.Body)
 	if err != nil {
-		return pokedex{}, err
+		return nil, err
 	}
+	// Updating Cache
+	cache.Add(URL, data)
+	return data, nil
+}
+
+func printMapData(data []byte) error {
 	// Unmarshal the bytes
 	var pokedex_map pokedex
 	if err := json.Unmarshal(data, &pokedex_map); err != nil {
-		return pokedex{}, err
+		return err
 	}
 
 	// Printing reuslts
@@ -98,5 +116,5 @@ func getMapData(URL string) (pokedex, error) {
 	mapConfig.next = pokedex_map.Next
 	mapConfig.previous = pokedex_map.Previous
 
-	return pokedex_map, nil
+	return nil
 }

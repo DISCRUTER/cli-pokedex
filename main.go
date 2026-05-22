@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+
+	"cli-pokedex/internal/pokecache"
 )
 
 type cliCommand struct {
@@ -20,6 +22,8 @@ type config struct {
 }
 
 var mapConfig config
+
+var cache pokecache.Cache
 
 func init() {
 	commands = map[string]cliCommand{
@@ -49,6 +53,8 @@ func init() {
 		next:     "https://pokeapi.co/api/v2/location-area/?offset=0&limit=20",
 		previous: "",
 	}
+
+	cache = *pokecache.NewCache()
 }
 
 func main() {
