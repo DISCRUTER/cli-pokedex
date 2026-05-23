@@ -5,6 +5,8 @@ import(
 	"sync"
 )
 
+var cacheDuration int
+
 type cacheEntry struct {
 	createdAt time.Time
 	val       []byte
@@ -14,6 +16,12 @@ type Cache struct {
 	entries map[string]cacheEntry
 	quit    chan bool
 	lock    sync.RWMutex
+}
+
+
+// Set Cache duration
+func SetCacheDuration(duration int) {
+	cacheDuration = duration
 }
 
 
@@ -62,7 +70,7 @@ func (c *Cache) Stop() {
 }
 
 func (c *Cache) reapLoop() {
-	ticker := time.NewTicker(5 * time.Second)
+	ticker := time.NewTicker(time.Duration(cacheDuration) * time.Second)
 	defer ticker.Stop()
 	lastRefresh := time.Now()
 	
@@ -70,7 +78,7 @@ func (c *Cache) reapLoop() {
 		select {
 		case <- c.quit:
 			return
-		case <- ticker.C:
+		case t := <- ticker.C:
 			// Locking resource
 			c.lock.Lock()
 			// Removing outdated keys
@@ -83,7 +91,7 @@ func (c *Cache) reapLoop() {
 			// Unlocking Resource
 			c.lock.Unlock()
 			// updating lastRefresh
-			lastRefresh = lastRefresh.Add(5 * time.Second)
+			lastRefresh = t
 		}
 	}
 }

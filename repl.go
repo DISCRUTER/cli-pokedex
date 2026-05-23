@@ -17,8 +17,45 @@ type pokedex struct {
 	} `json:"results"`
 }
 
+type pokemonLocation struct {
+	PokemonEncounters []struct {
+		Pokemon struct {
+			Name string `json:"name"`
+		} `json:"pokemon"`
+	} `json:"pokemon_encounters"`
+}
+
 func cleanInput(text string) []string {
 	return strings.Split(strings.ToLower(text), " ")
+}
+
+func exploreCommand() error {
+	// Check if argument is given
+	if len(inputText) < 2 {
+		return fmt.Errorf("Location name not provided.\nUsage: %v", commands["explore"].usage)
+	}
+
+	// Fetch pokemon names
+	URL := "https://pokeapi.co/api/v2/location-area/"
+	fullURL := URL + inputText[1]
+
+	// Fetch map data
+	data, err := getApiData(fullURL)
+	if err != nil {
+		return err
+	}
+	// Unmarshal the data
+	var pokemonInfo pokemonLocation
+	if err = json.Unmarshal(data, &pokemonInfo); err != nil {
+		return err
+	}
+	// Print the result
+	fmt.Println("Potential Pokemon encounters...")
+	for _, encounter := range pokemonInfo.PokemonEncounters {
+		println(encounter.Pokemon.Name)
+	}
+
+	return nil
 }
 
 func mapCommand() error {
@@ -29,7 +66,7 @@ func mapCommand() error {
 	}
 
 	// Fetch map data
-	data, err := getMapData(mapConfig.next)
+	data, err := getApiData(mapConfig.next)
 	if err != nil {
 		return err
 	}
@@ -49,7 +86,7 @@ func mapbCommand() error {
 	}
 
 	// Fetch map data
-	data, err := getMapData(mapConfig.previous)
+	data, err := getApiData(mapConfig.previous)
 	if err != nil {
 		return err
 	}
@@ -78,11 +115,11 @@ func exitCommand() error {
 
 // Helper functions
 
-func getMapData(URL string) ([]byte, error) {
+func getApiData(URL string) ([]byte, error) {
 	// Checking cache
 	data, exist := cache.Get(URL)
 	if exist {
-		return  data, nil
+		return data, nil
 	}
 	// Sending Http request
 	res, err := http.Get(URL)

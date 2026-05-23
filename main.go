@@ -8,14 +8,20 @@ import (
 	"cli-pokedex/internal/pokecache"
 )
 
+// Command struct
 type cliCommand struct {
 	name        string
 	description string
+	usage       string
 	callback    func() error
 }
 
 var commands map[string]cliCommand
 
+// Creating input store
+var inputText []string
+
+// Declaring config for url nagivation
 type config struct {
 	next     string
 	previous string
@@ -23,38 +29,59 @@ type config struct {
 
 var mapConfig config
 
+// Creating cache type
 var cache pokecache.Cache
 
 func init() {
 	commands = map[string]cliCommand{
+		// "catch": {
+		// 	name: "catch",
+		// 	description: "Catch the specified pokemon.",
+		// 	usage: "catch <pokemon-name>",
+		// 	callback: catchCommand,
+		// },
+		"explore": {
+			name:        "explore",
+			description: "List of the pokemons encountered in the area.",
+			usage:       "explore <area-name>",
+			callback:    exploreCommand,
+		},
 		"map": {
 			name:        "map",
 			description: "List 20 next location areas | Go to next 20",
+			usage:       "map",
 			callback:    mapCommand,
 		},
 		"mapb": {
 			name:        "mapb",
 			description: "List 20 previous location areas | Go to previous 20",
+			usage:       "mapb",
 			callback:    mapbCommand,
 		},
 		"help": {
 			name:        "help",
 			description: "Display a help message",
+			usage:       "help",
 			callback:    helpCommand,
 		},
 		"exit": {
 			name:        "exit",
 			description: "Exit the Pokedex",
+			usage:       "exit",
 			callback:    exitCommand,
 		},
 	}
 
+	// Initializing map config
 	mapConfig = config{
 		next:     "https://pokeapi.co/api/v2/location-area/?offset=0&limit=20",
 		previous: "",
 	}
 
+	// Configuring cache
+	pokecache.SetCacheDuration(10)
 	cache = *pokecache.NewCache()
+
 }
 
 func main() {
@@ -65,10 +92,10 @@ func main() {
 		fmt.Print("Pokedex > ")
 		scanner.Scan()
 		input := scanner.Text()
-		cleanedInput := cleanInput(input)
-		val, ok := commands[cleanedInput[0]]
+		inputText = cleanInput(input)
+		val, ok := commands[inputText[0]]
 		if !ok {
-			fmt.Printf("You command is %s\n", cleanedInput[0])
+			fmt.Println("Your command is:", inputText)
 			continue
 		}
 		if err := val.callback(); err != nil {
