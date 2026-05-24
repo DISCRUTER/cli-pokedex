@@ -27,6 +27,8 @@ type config struct {
 	previous string
 }
 
+var collection map[string]pokemon
+
 var mapConfig config
 
 // Creating cache type
@@ -34,17 +36,23 @@ var cache pokecache.Cache
 
 func init() {
 	commands = map[string]cliCommand{
-		// "catch": {
-		// 	name: "catch",
-		// 	description: "Catch the specified pokemon.",
-		// 	usage: "catch <pokemon-name>",
-		// 	callback: catchCommand,
-		// },
+		"catch": {
+			name:        "catch",
+			description: "Catch the specified pokemon.",
+			usage:       "catch <pokemon-name>",
+			callback:    catchCommand,
+		},
 		"explore": {
 			name:        "explore",
 			description: "List of the pokemons encountered in the area.",
 			usage:       "explore <area-name>",
 			callback:    exploreCommand,
+		},
+		"inspect": {
+			name:        "inspect",
+			description: "Inspect all the caught pokemon.",
+			usage:       "inspect <pokemon-name>",
+			callback:    inspectCommand,
 		},
 		"map": {
 			name:        "map",
@@ -57,6 +65,12 @@ func init() {
 			description: "List 20 previous location areas | Go to previous 20",
 			usage:       "mapb",
 			callback:    mapbCommand,
+		},
+		"pokedex": {
+			name:        "pokedex",
+			description: "List all the pokemon caught.",
+			usage:       "pokedex",
+			callback:    pokedexCommand,
 		},
 		"help": {
 			name:        "help",
@@ -82,6 +96,8 @@ func init() {
 	pokecache.SetCacheDuration(10)
 	cache = *pokecache.NewCache()
 
+	// Pokemon Collection
+	collection = make(map[string]pokemon)
 }
 
 func main() {

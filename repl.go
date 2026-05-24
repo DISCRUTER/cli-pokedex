@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 )
 
 type pokedex struct {
@@ -25,8 +27,52 @@ type pokemonLocation struct {
 	} `json:"pokemon_encounters"`
 }
 
+type pokemon struct {
+	Name           string `json:"name"`
+	BaseExperience int    `json:"base_experience"`
+	Height         int    `json:"height"`
+	Weight         int    `json:"weight"`
+	Types          []struct {
+		Type struct {
+			Name string `json:"name"`
+		} `json:"type"`
+	} `json:"types"`
+}
+
 func cleanInput(text string) []string {
 	return strings.Split(strings.ToLower(text), " ")
+}
+
+func catchCommand() error {
+	if len(inputText) < 2 {
+		return fmt.Errorf("Location name not provided.\nUsage: %v", commands["catch"].usage)
+	}
+	fmt.Printf("Throwing a Pokeball at %s...\n", inputText[1])
+
+	// Fetch pokemon data
+	URL := "https://pokeapi.co/api/v2/pokemon/" + inputText[1]
+	data, err := getApiData(URL)
+	if err != nil {
+		return err
+	}
+
+	// Unmarshal the data
+	var pokemonData pokemon
+	if err = json.Unmarshal(data, &pokemonData); err != nil {
+		return nil
+	}
+
+	// Genrating odd
+	r := rand.New(rand.NewSource(time.Now().UnixNano() * int64(pokemonData.BaseExperience)))
+	if r.Float32() > 0.5 {
+		fmt.Printf("%s was caught!\n", pokemonData.Name)
+		collection[pokemonData.Name] = pokemonData
+		fmt.Println("You may now inspect it with the inspect command.")
+	} else {
+		fmt.Printf("%s escaped!\n", pokemonData.Name)
+	}
+
+	return nil
 }
 
 func exploreCommand() error {
@@ -36,11 +82,10 @@ func exploreCommand() error {
 	}
 
 	// Fetch pokemon names
-	URL := "https://pokeapi.co/api/v2/location-area/"
-	fullURL := URL + inputText[1]
+	URL := "https://pokeapi.co/api/v2/location-area/" + inputText[1]
 
 	// Fetch map data
-	data, err := getApiData(fullURL)
+	data, err := getApiData(URL)
 	if err != nil {
 		return err
 	}
@@ -53,6 +98,29 @@ func exploreCommand() error {
 	fmt.Println("Potential Pokemon encounters...")
 	for _, encounter := range pokemonInfo.PokemonEncounters {
 		println(encounter.Pokemon.Name)
+	}
+
+	return nil
+}
+
+func inspectCommand() error {
+	// Check if pokemon name exist
+	if len(inputText) < 2 {
+		return fmt.Errorf("Location name not provided.\nUsage: %v", commands["inspect"].usage)
+	}
+
+	// Fetch pokemon data
+	data, exist := collection[inputText[1]]
+	if !exist {
+		fmt.Println("you have not caught that pokemon")
+		return nil
+	}
+
+	// Printing data
+	fmt.Printf("Name: %s\nBase Experience: %d\nHeight: %d\nWeight: %d\n", data.Name, data.BaseExperience, data.Height, data.Weight)
+	fmt.Println("Types:")
+	for _, val := range data.Types {
+		fmt.Println("  -", val.Type.Name)
 	}
 
 	return nil
@@ -95,6 +163,17 @@ func mapbCommand() error {
 		return err
 	}
 
+	return nil
+}
+
+func pokedexCommand() error {
+	if len(collection) < 1 {
+		fmt.Println("No pokemon found. Try catching one.")
+		return fmt.Errorf("No pokemon found.")
+	}
+	for name := range collection {
+		println("  -", name)
+	}
 	return nil
 }
 
