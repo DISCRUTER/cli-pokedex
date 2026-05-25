@@ -1,6 +1,6 @@
 # Cli Pokedex
 
-An easy and cody way to explore the world of pokemon.  
+An easy and codey way to explore the world of pokemon.  
 
 > [!IMPORTANT]
 > This project was made as a part of a course. And hereby, will only receive occasional updates when I have time. If you want a feature added feel free to modify it.  

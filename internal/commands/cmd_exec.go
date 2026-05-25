@@ -69,8 +69,7 @@ func init() {
 		previous: "",
 	}
 	// Configuring cache
-	pokecache.SetCacheDuration(10)
-	cache = *pokecache.NewCache()
+	cache = *pokecache.NewCache(5 * time.Second)
 }
 
 func catchCommand(inputText []string) error {

@@ -1,11 +1,9 @@
 package pokecache
 
-import( 
-	"time"
+import (
 	"sync"
+	"time"
 )
-
-var cacheDuration int
 
 type cacheEntry struct {
 	createdAt time.Time
@@ -13,23 +11,18 @@ type cacheEntry struct {
 }
 
 type Cache struct {
-	entries map[string]cacheEntry
-	quit    chan bool
-	lock    sync.RWMutex
+	entries  map[string]cacheEntry
+	quit     chan bool
+	lock     sync.RWMutex
+	interval time.Duration
 }
-
-
-// Set Cache duration
-func SetCacheDuration(duration int) {
-	cacheDuration = duration
-}
-
 
 // Initialization
-func NewCache() *Cache {
+func NewCache(interval time.Duration) *Cache {
 	cache := &Cache{
-		entries: make(map[string]cacheEntry),
-		quit: make(chan bool),
+		entries:  make(map[string]cacheEntry),
+		quit:     make(chan bool),
+		interval: interval,
 	}
 
 	// Intializing cleanup
@@ -47,7 +40,7 @@ func (c *Cache) Add(key string, value []byte) {
 	// Adding value to entries
 	c.entries[key] = cacheEntry{
 		createdAt: time.Now(),
-		val: value,
+		val:       value,
 	}
 }
 
@@ -70,28 +63,24 @@ func (c *Cache) Stop() {
 }
 
 func (c *Cache) reapLoop() {
-	ticker := time.NewTicker(time.Duration(cacheDuration) * time.Second)
+	ticker := time.NewTicker(c.interval)
 	defer ticker.Stop()
-	lastRefresh := time.Now()
-	
+
 	for {
 		select {
-		case <- c.quit:
+		case <-c.quit:
 			return
-		case t := <- ticker.C:
+		case <-ticker.C:
 			// Locking resource
 			c.lock.Lock()
 			// Removing outdated keys
 			for key, value := range c.entries {
-				if value.createdAt.Before(lastRefresh) {
+				if time.Since(value.createdAt) >= c.interval {
 					delete(c.entries, key)
-					continue
 				}
 			}
 			// Unlocking Resource
 			c.lock.Unlock()
-			// updating lastRefresh
-			lastRefresh = t
 		}
 	}
 }
